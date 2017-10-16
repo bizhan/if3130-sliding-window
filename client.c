@@ -1,67 +1,65 @@
-/*
-    Simple udp client
-*/
-#include <stdio.h> //printf
-#include <string.h> //memset
-#include <stdlib.h> //exit(0);
-#include <arpa/inet.h>
+#include <stdio.h>
 #include <sys/socket.h>
- 
-#define SERVER "127.0.0.1"
-#define BUFLEN 512  //Max length of buffer
-#define PORT 8888   //The port on which to send data
- 
-void die(char *s)
-{
+#include <netinet/in.h>
+#include <string.h>
+
+void die(char *s){
     perror(s);
     exit(1);
 }
- 
-int main(void)
-{
-    struct sockaddr_in si_other;
-    int s, i, slen=sizeof(si_other);
+
+int char_to_int(char* s) {
+    int n = 0;
+    while (*s != 0)
+        n = n * 10 + ((int) (*s++) - '0');
+    return n;
+}
+
+int main(int argc, char *argv[]){
+    if(argc < 6){
+        die("<filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
+    }
+
+    // read from argument
+    char* FILE_NAME = argv[1];
+    int WS = char_to_int(argv[2]);
+    int BUFLEN = char_to_int(argv[3]);
+    int DEST_IP = char_to_int(argv[4]);
+    int DEST_PORT = char_to_int(argv[5]);
     char buf[BUFLEN];
-    char message[BUFLEN];
- 
-    if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-    {
-        die("socket");
+
+    int clientSocket, portNum, nBytes;
+    char buffer[BUFLEN];
+    struct sockaddr_in serverAddr;
+    socklen_t addr_size;
+
+    /*Create UDP socket*/
+    clientSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    /*Configure settings in address struct*/
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(DEST_PORT);
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
+
+    /*Initialize size variable to be used later on*/
+    addr_size = sizeof serverAddr;
+
+    while(1){
+        printf("Type a sentence to send to server:\n");
+        fgets(buffer,BUFLEN,stdin);
+        printf("You typed: %s",buffer);
+
+        nBytes = strlen(buffer) + 1;
+
+        /*Send message to server*/
+        sendto(clientSocket,buffer,nBytes,0,(struct sockaddr *)&serverAddr,addr_size);
+
+        /*Receive message from server*/
+        nBytes = recvfrom(clientSocket,buffer,BUFLEN,0,NULL, NULL);
+
+        printf("Received from server: %s\n",buffer);
     }
- 
-    memset((char *) &si_other, 0, sizeof(si_other));
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(PORT);
-     
-    if (inet_aton(SERVER , &si_other.sin_addr) == 0) 
-    {
-        fprintf(stderr, "inet_aton() failed\n");
-        exit(1);
-    }
- 
-    while(1)
-    {
-        printf("Enter message : ");
-        gets(message);
-         
-        //send the message
-        if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-        {
-            die("sendto()");
-        }
-         
-        //receive a reply and print it
-        //clear the buffer by filling null, it might have previously received data
-        memset(buf,'\0', BUFLEN);
-        //try to receive some data, this is a blocking call
-        if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-        {
-            die("recvfrom()");
-        }
-         
-        puts(buf);
-    }
- 
-    close(s);
+
     return 0;
 }
