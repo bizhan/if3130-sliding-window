@@ -3,23 +3,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include "util.h"
-
-typedef struct {
-    char SOH;
-    int seqNum;
-    char STX;
-    char data;
-    char ETX;
-    char checksum;
-} segment;
-
-
-typedef struct {
-    char ACK;
-    int nextSeqNum;
-    char winSize;
-    char checksum;
-} ack;
+#include "segment.h"
 
 int main(int argc, char *argv[]){
     if(argc < 6){
@@ -51,21 +35,47 @@ int main(int argc, char *argv[]){
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverAddr;
 
-    while(1){
-        printf("Type a sentence to send to server:\n");
-        fgets(buffer,BUFLEN,stdin);
-        printf("You typed: %s",buffer);
+    char *has_ack = (char *) malloc(WS * sizeof(char));
+    char *msg_ws = (char *) malloc(WS * sizeof(char));
 
-        nBytes = strlen(buffer) + 1;
-
-        /*Send message to server*/
-        sendto(clientSocket,buffer,nBytes,0,(struct sockaddr *)&serverAddr,addr_size);
-
-        /*Receive message from server*/
-        nBytes = recvfrom(clientSocket,buffer,BUFLEN,0,NULL, NULL);
-
-        printf("Received from server: %s\n",buffer);
+    FILE *fp;
+    fp = fopen(FILE_NAME, "r");
+    if(fp == NULL){
+        die("Couldn't open file");
     }
+
+    char *msg_buff = malloc(BUFLEN * sizeof(char));
+    int n=0, c;
+    while(1){
+        while(n < BUFLEN/9 && (c = fgetc(fp)) != EOF){
+            segment* seg;
+            char* raw;
+            seg->soh = 0x1;
+            seg->seqNum = n;
+            seg->stx = 0x2;
+            seg->data = (char)c;
+            seg->etx = 0x3;
+            seg->checksum = 0x4;
+            segment_to_raw(*seg, &raw);
+            for(int i=0; i<9; i++){
+                // msg_buff+(n*9+1) = raw[i];
+            }
+            n++;
+        }
+    }
+    
+        // printf("Type a sentence to send to server:\n");
+        // fgets(buffer,BUFLEN,stdin);
+        // printf("You typed: %s",buffer);
+        // nBytes = strlen(buffer) + 1;
+
+        // /*Send message to server*/
+        // sendto(clientSocket,buffer,nBytes,0,(struct sockaddr *)&serverAddr,addr_size);
+
+        // /*Receive message from server*/
+        // nBytes = recvfrom(clientSocket,buffer,BUFLEN,0,NULL, NULL);
+
+        // printf("Received from server: %s\n",buffer);
 
     return 0;
 }
