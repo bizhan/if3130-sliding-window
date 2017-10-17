@@ -63,6 +63,7 @@ int main(int argc, char *argv[]){
             // }
             n++;
         }
+        printf("%s\n", msg_buff[n*9]);
     }
     
         // printf("Type a sentence to send to server:\n");
