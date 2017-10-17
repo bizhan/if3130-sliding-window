@@ -23,10 +23,10 @@ typedef struct {
 
 void segment_to_raw(segment seg, char* raw);
 
-void to_segment(segment seg, char* raw);
+void to_segment(segment* seg, char* raw);
 
 void ack_to_raw(packet_ack ack_seg, char* raw);
 
-void to_ack(packet_ack ack_seg, char* raw);
+void to_ack(packet_ack* ack_seg, char* raw);
 
 #endif SEGMENT_H
