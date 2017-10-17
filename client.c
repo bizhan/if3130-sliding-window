@@ -7,15 +7,6 @@
 
 #define SEGMENTSIZE 9
 
-void connect_to_socket(int* clientSocket, int* serverAddr){
-    *clientSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(DEST_PORT);
-    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
-}
-
-
 int main(int argc, char *argv[]){
     if(argc < 6){
         die("<filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
@@ -41,7 +32,7 @@ int main(int argc, char *argv[]){
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(DEST_PORT);
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
+    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
 
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverAddr;
