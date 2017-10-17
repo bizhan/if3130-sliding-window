@@ -5,6 +5,17 @@
 #include "util.h"
 #include "segment.h"
 
+#define SEGMENTSIZE 9
+
+void connect_to_socket(int* clientSocket, int* serverAddr){
+    *clientSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(DEST_PORT);
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
+}
+
+
 int main(int argc, char *argv[]){
     if(argc < 6){
         die("<filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
@@ -30,7 +41,7 @@ int main(int argc, char *argv[]){
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(DEST_PORT);
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
+    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
 
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverAddr;
@@ -53,7 +64,7 @@ int main(int argc, char *argv[]){
             int n=0;
             while(n < BUFLEN/sizeof(segment) && (c = fgetc(fp)) != EOF){
                 segment seg;
-                char* raw = (char*) malloc(9*sizeof(char));
+                char* raw = (char*) malloc(SEGMENTSIZE*sizeof(char));
                 seg.soh = 0x1;
                 seg.seqNum = n;
                 seg.stx = 0x2;
@@ -63,8 +74,8 @@ int main(int argc, char *argv[]){
                 segment_to_raw(seg, raw);
                 seg.checksum = checksum_str(raw, 8);
                 raw[8] = seg.checksum;
-                for(int i=0; i<9; i++){
-                    send_buff[n*9+i] = raw[i];
+                for(int i=0; i<SEGMENTSIZE; i++){
+                    send_buff[n*SEGMENTSIZE+i] = raw[i];
                 }
                 n++;
             }
@@ -72,16 +83,15 @@ int main(int argc, char *argv[]){
             block = 1;
         } else {
             for(int i=LAR+1; i<=LFS; i++){
-                // printf("%d\n", send_buff[i*9+1]);
                 char* segment_buff = (char*) malloc(sizeof(char)*9);
-                for(int j=0; j<9; j++){
-                    segment_buff[j] = send_buff[i*9+j];
+                for(int j=0; j<SEGMENTSIZE; j++){
+                    segment_buff[j] = send_buff[i*SEGMENTSIZE+j];
                 }
                 printf("%d\n", segment_buff[1]);
-                sendto(clientSocket,segment_buff,9,0,(struct sockaddr *)&serverAddr,addr_size);
+                sendto(clientSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr *)&serverAddr,addr_size);
             }
-            char* raw = (char*) malloc(9*sizeof(char));
-            nBytes = recvfrom(clientSocket,raw,9,0,NULL, NULL);
+            char* raw = (char*) malloc(SEGMENTSIZE*sizeof(char));
+            nBytes = recvfrom(clientSocket,raw,SEGMENTSIZE,0,NULL, NULL);
 
             packet_ack ack;
             to_ack(&ack, raw);
