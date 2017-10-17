@@ -20,10 +20,8 @@ typedef struct {
   int length;
 } BufferArray;
 
-BufferArray recvbuffer;
-
 void initBufferArray(BufferArray* a) {
-    a->array = (segment*) malloc (0);
+    a->array = malloc(BUFFERSIZE * sizeof(char));
     a->length = 0;
 }
 
@@ -47,10 +45,9 @@ void drainBufferArray(BufferArray* a) {
 
 int insertBufferArray(BufferArray *a, segment aSegment) {
     int usedMemory = a->length * SEGMENTSIZE;
-    a->array = (segment*) realloc (a->array, usedMemory + SEGMENTSIZE);
     if (BUFFERSIZE - usedMemory > SEGMENTSIZE) {
         *(a->array + a->length * SEGMENTSIZE) = aSegment;
-        a->length = a->length + 1;
+        a->length += 1;
         return 1;
     }
     else {
@@ -120,16 +117,16 @@ void writingFile(void *vargp) {
 
 int main(int argc, char *argv[]){
 
-    pthread_t thread1, thread2;
-    int  iret1, iret2;
-    pthread_create(&thread1, NULL, readingFile, NULL);
-    pthread_create( &thread2, NULL, writingFile, NULL);
-         /* Wait till threads are complete before main continues. Unless we  */
-         /* wait we run the risk of executing an exit which will terminate   */
-         /* the process and all threads before the threads have completed.   */
-         pthread_join( thread1, NULL);
-         pthread_join( thread2, NULL);
-         exit(EXIT_SUCCESS);
+    // pthread_t thread1, thread2;
+    // int  iret1, iret2;
+    // pthread_create(&thread1, NULL, readingFile, NULL);
+    // pthread_create( &thread2, NULL, writingFile, NULL);
+    // /* Wait till threads are complete before main continues. Unless we  */
+    // /* wait we run the risk of executing an exit which will terminate   */
+    // /* the process and all threads before the threads have completed.   */
+    // pthread_join( thread1, NULL);
+    // pthread_join( thread2, NULL);
+    // exit(EXIT_SUCCESS);
 
     // printf("%d\n", recvbuffer.length);
 
@@ -147,57 +144,56 @@ int main(int argc, char *argv[]){
 
     // recvbuffer = (segment*) malloc (28 * sizeof(segment));
     // writeToFile();
-    // if(argc < 5){
-    //     die("<filename> <windowsize> <buffersize> <port>");
-    // }
+    if(argc < 5){
+        die("<filename> <windowsize> <buffersize> <port>");
+    }
 
-    // // read from argument
-    // char* FILE_NAME = argv[1];
-    // int WS = char_to_int(argv[2]);
-    // int BUFLEN = char_to_int(argv[3]);
-    // int PORT = char_to_int(argv[4]);
-    // char buf[BUFLEN];
+    // read from argument
+    char* FILE_NAME = argv[1];
+    int WS = char_to_int(argv[2]);
+    int BUFLEN = char_to_int(argv[3]);
+    int PORT = char_to_int(argv[4]);
+    char buf[BUFLEN];
 
-    // int udpSocket, nBytes;
+    int udpSocket, nBytes;
     // char buffer[BUFLEN];
-    // struct sockaddr_in serverAddr, clientAddr;
-    // struct sockaddr_storage serverStorage;
-    // socklen_t addr_size, client_addr_size;
-    // int i;
+    char* buffer = (char*) malloc(sizeof(char)*9);
+    struct sockaddr_in serverAddr, clientAddr;
+    socklen_t addr_size, client_addr_size;
+    int i;
 
-    // /*Create UDP socket*/
-    // udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    // if(udpSocket < 0){
-    //     die("Failed create UDP Socket");
-    // }
+    /*Create UDP socket*/
+    udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(udpSocket < 0){
+        die("Failed create UDP Socket");
+    }
 
-    // /*Configure settings in address struct*/
-    // serverAddr.sin_family = AF_INET;
-    // serverAddr.sin_port = htons(PORT);
-    // serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    // memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
+    /*Configure settings in address struct*/
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(PORT);
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
 
-    // /*Bind socket with address struct*/
-    // if(bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0){
-    //     die("Couldn't bind socket");
-    // }
+    /*Bind socket with address struct*/
+    if(bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0){
+        die("Couldn't bind socket");
+    }
 
-    // /*Initialize size variable to be used later on*/
-    // addr_size = sizeof serverStorage;
+    BufferArray recvbuffer;
+    initBufferArray(&recvbuffer);
+    // recvbuffer.array = malloc(BUFLEN * sizeof(char));
 
-    // while(1){
-    //     /* Try to receive any incoming UDP datagram. Address and port of 
-    //       requesting client will be stored on serverStorage variable */
-    //     nBytes = recvfrom(udpSocket,buffer,BUFLEN,0,(struct sockaddr *) &serverStorage, &addr_size);
+    while(1){
+        char* segment_buff = (char*) malloc(sizeof(char)*9);
+        nBytes = recvfrom(udpSocket,segment_buff,9,0,NULL, NULL);
 
-    //     /*Convert message received to uppercase*/
-    //     for(i=0;i<nBytes-1;i++)
-    //       buffer[i] = toupper(buffer[i]);
+        segment seg;
+        to_segment(&seg,segment_buff);
 
-    //     printf("%s\n", buffer);
-    //     /*Send uppercase message back to client, using serverStorage as the address*/
-    //     sendto(udpSocket,buffer,nBytes,0,(struct sockaddr *)&serverStorage,addr_size);
-    // }
+        insertBufferArray(&recvbuffer,seg);
+
+        sendto(udpSocket,buffer,nBytes,0,NULL,NULL);
+    }
 
     return 0;
 }
