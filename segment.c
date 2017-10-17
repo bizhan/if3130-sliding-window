@@ -42,7 +42,7 @@ void to_ack(packet_ack* ack_seg, char* raw) {
 
 char checksum_str(char* x, int length) {
 	int n = 0;
-	while(--length) {
+	while(length--) {
 		n += (char) *(x++); 
 	}
 	return (char) n;
