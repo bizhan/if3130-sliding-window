@@ -33,7 +33,7 @@ void freeArray(BufferArray *a) {
 void drainBufferArray(BufferArray* a) {
     for (int i = 0; i < a->length; i++) {
         segment aSegment = *(a->array + i * SEGMENTSIZE);
-        printf("%d - %c\n", aSegment.seqNum, aSegment.data);
+        writeToFile("output.txt", aSegment.data);
     }
     freeArray(a);
     BUFFERFULL = 0;
@@ -43,7 +43,7 @@ void insertBufferArray(BufferArray *a, segment aSegment) {
     int currentMemoryUsed = a->length * SEGMENTSIZE;
     int memoryNeeded = currentMemoryUsed + SEGMENTSIZE;
     int remainingMemoryAfterInsertion = BUFFERSIZE - memoryNeeded;
-    
+
     *(a->array + a->length * SEGMENTSIZE) = aSegment;
     a->length = a->length + 1;
     
@@ -54,6 +54,13 @@ void insertBufferArray(BufferArray *a, segment aSegment) {
     else {
         BUFFERFULL = 0;    
     }
+}
+
+void writeToFile(char* filename, char cc) {
+    FILE* fp;
+    fp = fopen(filename, "a");
+    fprintf(fp, "%c", cc);
+    fclose(fp);
 }
 
 // void writeToFile(char* filename, char* message) {
@@ -76,19 +83,9 @@ segment generateSegment(int seqNum, char data, char checksum) {
 
 int main(int argc, char *argv[]){
 
-    initBufferArray(&recvbuffer);
+    // initBufferArray(&recvbuffer);
 
-    int totalLength = 10;
-
-    for (int i = 0; i < totalLength; i++) {
-        char cc = 'x';
-        segment aSegment = generateSegment(i, cc, i - 1);
-        insertBufferArray(&recvbuffer, aSegment);
-
-        if (BUFFERFULL == 1 || i == totalLength - 1) {
-            drainBufferArray(&recvbuffer);
-        }
-    }
+    // writeToFile("josjos.txt", 'a');
     // printf("%d\n", recvbuffer.length);
 
     // for (int i = 0; i < recvbuffer.length; i++) {
