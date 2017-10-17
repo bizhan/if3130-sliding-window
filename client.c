@@ -62,12 +62,13 @@ int main(int argc, char *argv[]){
                 seg.data = (char)c;
                 seg.etx = 0x3;
                 segment_to_raw(seg, raw);
-                // printf("%c\n", raw[6]);
                 for(int i=0; i<9; i++){
                     send_buff[n*9+i] = raw[i];
                 }
-                // printf("%d\n", send_buff[n*9+1]);
                 n++;
+            }
+            if(c==EOF){
+                exit(1);
             }
             NEXT_SEG_FROM_BUFFER = n;
             block = 1;
@@ -77,50 +78,17 @@ int main(int argc, char *argv[]){
 
             packet_ack ack;
             to_ack(&ack, raw);
-            int cur_ack = ack.nextSeqNum-1;
-            int first_seg = LAR+1;
-            int pos = cur_ack-first_seg;
-            has_ack[pos] = 1;
-
-            if(pos==0){
-                // SLIDE
-                int n=0;
-                for(int i=0; i<SWS; i++,n++){
-                    if(!has_ack[i]){
-                        break;
-                    }
-                }
-                for(int i=0; i<SWS-n; i++){
-                    has_ack[i] = has_ack[i+n];
-                }
-                for(int i=SWS-n; i<SWS; i++){
-                    has_ack[i] = NULL;
-                }
-
-                LAR+=n;
-                LFS=LAR+SWS; // sementara
-                if(LFS>=NEXT_SEG_FROM_BUFFER){
-                    block=0;
-                }
+            int next_seg = ack.nextSeqNum;
+            LAR=next_seg-1;
+            LFS=(LAR+SWS<NEXT_SEG_FROM_BUFFER)?LAR+SWS:NEXT_SEG_FROM_BUFFER-1;
+            if(LAR==LFS){
+                block=0;
             }
             for(int i=LAR+1; i<=LFS; i++){
                 sendto(clientSocket,send_buff[i*9],9,0,(struct sockaddr *)&serverAddr,addr_size);
             }
         }
     }
-    
-        // printf("Type a sentence to send to server:\n");
-        // fgets(buffer,BUFLEN,stdin);
-        // printf("You typed: %s",buffer);
-        // nBytes = strlen(buffer) + 1;
-
-        // /*Send message to server*/
-        // sendto(clientSocket,buffer,nBytes,0,(struct sockaddr *)&serverAddr,addr_size);
-
-        // /*Receive message from server*/
-        // nBytes = recvfrom(clientSocket,buffer,BUFLEN,0,NULL, NULL);
-
-        // printf("Received from server: %s\n",buffer);
 
     return 0;
 }
