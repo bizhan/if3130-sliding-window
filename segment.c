@@ -39,3 +39,11 @@ void to_ack(packet_ack* ack_seg, char* raw) {
 	ack_seg->windowSize = *(raw+5);
 	ack_seg->checksum = *(raw+6);	
 }
+
+char checksum_str(char* x, int length) {
+	int n = 0;
+	while(--length) {
+		n += (char) *(x++); 
+	}
+	return (char) n;
+}
