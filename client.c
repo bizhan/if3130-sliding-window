@@ -48,21 +48,22 @@ int main(int argc, char *argv[]){
     int n=0, c;
     while(1){
         while(n < BUFLEN/9 && (c = fgetc(fp)) != EOF){
-            segment* seg;
+            segment seg;
             char* raw;
-            seg->soh = 0x1;
-            seg->seqNum = n;
-            seg->stx = 0x2;
-            seg->data = (char)c;
-            seg->etx = 0x3;
-            seg->checksum = 0x4;
-            segment_to_raw(*seg, &raw);
+            seg.soh = 0x1;
+            seg.seqNum = n;
+            seg.stx = 0x2;
+            seg.data = (char)c;
+            seg.etx = 0x3;
+            seg.checksum = 0x4;
+            segment_to_raw(seg, &raw);
             msg_buff[n*9] = raw;
             // for(int i=0; i<9; i++){
             //     msg_buff+(n*9+1) = raw+i;
             // }
             n++;
         }
+        printf("%s", msg_buff[n*9]);
     }
     
         // printf("Type a sentence to send to server:\n");
