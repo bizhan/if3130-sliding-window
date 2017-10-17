@@ -1,6 +1,6 @@
 #include "segment.h"
 
-void segment_to_raw(segment seg, char* raw) {
+void segment_to_raw(segment seg, char *raw) {
 	raw[0] = seg.soh;
 	char* x = (char*) &seg.seqNum;
 	raw[1] = *x;
@@ -11,6 +11,7 @@ void segment_to_raw(segment seg, char* raw) {
 	raw[6] = seg.data;
 	raw[7] = seg.etx;
 	raw[8] = seg.checksum;
+	// printf("%c\n", raw[6]);
 }
 
 void to_segment(segment* seg, char* raw) {
