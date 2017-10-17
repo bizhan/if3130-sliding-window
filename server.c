@@ -31,7 +31,7 @@ void freeArray(BufferArray *a) {
 void drainBufferArray(BufferArray* a) {
     for (int i = 0; i < a->length; i++) {
         segment aSegment = *(a->array + i * SEGMENTSIZE);
-        printf("%d - %c\n", aSegment.seqNum, aSegment.data);
+        writeToFile("output.txt", aSegment.data);
     }
     freeArray(a);
     BUFFERFULL = 0;
@@ -54,22 +54,11 @@ void insertBufferArray(BufferArray *a, segment aSegment) {
     }
 }
 
-// void writeToFile(char* filename, char* message) {
-//     FILE* fp;
-//     fp = fopen(filename, "a");
-//     fprintf(fp, message);
-//     fclose(fp);
-// }
-
-segment generateSegment(int seqNum, char data, char checksum) {
-    segment aSegment;
-    aSegment.soh = 0x1;
-    aSegment.seqNum = seqNum;
-    aSegment.stx = 0x2;
-    aSegment.data = data;
-    aSegment.etx = 0x3;
-    aSegment.checksum = checksum;
-    return aSegment;
+void writeToFile(char* filename, char message) {
+    FILE* fp;
+    fp = fopen(filename, "a");
+    fprintf(fp, "%c", message);
+    fclose(fp);
 }
 
 int main(int argc, char *argv[]){
