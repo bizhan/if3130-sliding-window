@@ -12,7 +12,7 @@ int main(int argc, char *argv[]){
 
     // read from argument
     char* FILE_NAME = argv[1];
-    int WS = char_to_int(argv[2]);
+    int SWS = char_to_int(argv[2]);
     int BUFLEN = char_to_int(argv[3]);
     int DEST_IP = char_to_int(argv[4]);
     int DEST_PORT = char_to_int(argv[5]);
@@ -35,8 +35,8 @@ int main(int argc, char *argv[]){
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverAddr;
 
-    char *has_ack = (char *) malloc(WS * sizeof(char));
-    char *msg_ws = (char *) malloc(WS * sizeof(char));
+    char *has_ack = (char *) malloc(SWS * sizeof(char));
+    char *msg_ws = (char *) malloc(SWS * sizeof(char));
 
     FILE *fp;
     fp = fopen(FILE_NAME, "r");
@@ -44,26 +44,69 @@ int main(int argc, char *argv[]){
         die("Couldn't open file");
     }
 
-    char *msg_buff = malloc(BUFLEN * sizeof(char));
-    int n=0, c;
+    char *send_buff = malloc(BUFLEN * sizeof(char));
+    int block;
+    block = 0;
+    int LAR = -1, LFS = LAR + SWS;
+    int NEXT_SLIDE = 0;
+    int NEXT_SEG_FROM_BUFFER = 0;
     while(1){
-        while(n < BUFLEN/9 && (c = fgetc(fp)) != EOF){
-            segment seg;
-            char* raw;
-            seg.soh = 0x1;
-            seg.seqNum = n;
-            seg.stx = 0x2;
-            seg.data = (char)c;
-            seg.etx = 0x3;
-            seg.checksum = 0x4;
-            segment_to_raw(seg, &raw);
-            msg_buff[n*9] = raw;
-            // for(int i=0; i<9; i++){
-            //     msg_buff+(n*9+1) = raw+i;
-            // }
-            n++;
+        if(!block){
+            int n=0, c;
+            while(n < BUFLEN/sizeof(segment) && (c = fgetc(fp)) != EOF){
+                segment seg;
+                char* raw = (char*) malloc(9*sizeof(char));
+                seg.soh = 0x1;
+                seg.seqNum = n;
+                seg.stx = 0x2;
+                seg.data = (char)c;
+                seg.etx = 0x3;
+                segment_to_raw(seg, raw);
+                // printf("%c\n", raw[6]);
+                for(int i=0; i<9; i++){
+                    send_buff[n*9+i] = raw[i];
+                }
+                // printf("%d\n", send_buff[n*9+1]);
+                n++;
+            }
+            NEXT_SEG_FROM_BUFFER = n;
+            block = 1;
+        } else {
+            char* raw = (char*) malloc(9*sizeof(char));
+            nBytes = recvfrom(clientSocket,raw,9,0,NULL, NULL);
+
+            packet_ack ack;
+            to_ack(&ack, raw);
+            int cur_ack = ack.nextSeqNum-1;
+            int first_seg = LAR+1;
+            int pos = cur_ack-first_seg;
+            has_ack[pos] = 1;
+
+            if(pos==0){
+                // SLIDE
+                int n=0;
+                for(int i=0; i<SWS; i++,n++){
+                    if(!has_ack[i]){
+                        break;
+                    }
+                }
+                for(int i=0; i<SWS-n; i++){
+                    has_ack[i] = has_ack[i+n];
+                }
+                for(int i=SWS-n; i<SWS; i++){
+                    has_ack[i] = NULL;
+                }
+
+                LAR+=n;
+                LFS=LAR+SWS; // sementara
+                if(LFS>=NEXT_SEG_FROM_BUFFER){
+                    block=0;
+                }
+            }
+            for(int i=LAR+1; i<=LFS; i++){
+                sendto(clientSocket,send_buff[i*9],9,0,(struct sockaddr *)&serverAddr,addr_size);
+            }
         }
-        printf("%s", msg_buff[n*9]);
     }
     
         // printf("Type a sentence to send to server:\n");
