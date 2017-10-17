@@ -49,6 +49,7 @@ int main(int argc, char *argv[]){
     int LAR = -1, LFS = LAR + SWS;
     int NEXT_SLIDE = 0;
     int NEXT_SEG_FROM_BUFFER = 0;
+    int pos = 0;
     while(1){
         int c;
         if(!block){
@@ -73,24 +74,25 @@ int main(int argc, char *argv[]){
             NEXT_SEG_FROM_BUFFER = n;
             block = 1;
         } else {
-            for(int i=LAR+1; i<=LFS; i++){
-                char* segment_buff = (char*) malloc(sizeof(char)*9);
-                for(int j=0; j<SEGMENTSIZE; j++){
-                    segment_buff[j] = send_buff[i*SEGMENTSIZE+j];
-                }
-                printf("%d\n", segment_buff[1]);
-                sendto(clientSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr *)&serverAddr,addr_size);
+            char* segment_buff = (char*) malloc(sizeof(char)*9);
+            for(int j=0; j<SEGMENTSIZE; j++){
+                segment_buff[j] = send_buff[pos*SEGMENTSIZE+j];
             }
+            sendto(clientSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr *)&serverAddr,addr_size);
+
+            printf("[%d] segment %d send\n", (int) time(0), segment_buff[1]);
             char* raw = (char*) malloc(SEGMENTSIZE*sizeof(char));
             nBytes = recvfrom(clientSocket,raw,SEGMENTSIZE,0,NULL, NULL);
 
             packet_ack ack;
             to_ack(&ack, raw);
             int next_seg = ack.nextSeqNum;
+            pos = next_seg;
             LAR=next_seg-1;
             LFS=(LAR+SWS<NEXT_SEG_FROM_BUFFER)?LAR+SWS:NEXT_SEG_FROM_BUFFER-1;
             if(LAR==LFS){
                 block=0;
+                pos=0;
                 if(c==EOF){
                     exit(1);
                 }
