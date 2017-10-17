@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <stdlib.h>
+#include "segment.h"
 #include "util.h"
 
 segment* recvbuffer;
@@ -16,7 +17,7 @@ void writeToFile() {
 
 int main(int argc, char *argv[]){
     recvbuffer = (segment*) malloc (256);
-
+    
     writeToFile();
     // if(argc < 5){
     //     die("<filename> <windowsize> <buffersize> <port>");

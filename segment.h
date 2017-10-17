@@ -29,4 +29,4 @@ void ack_to_raw(packet_ack ack_seg, char* raw);
 
 void to_ack(packet_ack* ack_seg, char* raw);
 
-#endif SEGMENT_H
+#endif
