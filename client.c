@@ -2,18 +2,24 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
+#include "util.h"
 
-void die(char *s){
-    perror(s);
-    exit(1);
-}
+typedef struct {
+    char SOH;
+    int seqNum;
+    char STX;
+    char data;
+    char ETX;
+    char checksum;
+} segment;
 
-int char_to_int(char* s) {
-    int n = 0;
-    while (*s != 0)
-        n = n * 10 + ((int) (*s++) - '0');
-    return n;
-}
+
+typedef struct {
+    char ACK;
+    int nextSeqNum;
+    char winSize;
+    char checksum;
+} ack;
 
 int main(int argc, char *argv[]){
     if(argc < 6){

@@ -3,18 +3,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <stdlib.h>
-
-void die(char *s){
-    perror(s);
-    exit(1);
-}
-
-int char_to_int(char* s) {
-    int n = 0;
-    while (*s != 0)
-        n = n * 10 + ((int) (*s++) - '0');
-    return n;
-}
+#include "util.h"
 
 int main(int argc, char *argv[]){
     if(argc < 5){
@@ -37,6 +26,9 @@ int main(int argc, char *argv[]){
 
     /*Create UDP socket*/
     udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(udpSocket < 0){
+        die("Failed create UDP Socket");
+    }
 
     /*Configure settings in address struct*/
     serverAddr.sin_family = AF_INET;
@@ -45,7 +37,9 @@ int main(int argc, char *argv[]){
     memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);  
 
     /*Bind socket with address struct*/
-    bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
+    if(bind(udpSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0){
+        die("Couldn't bind socket");
+    }
 
     /*Initialize size variable to be used later on*/
     addr_size = sizeof serverStorage;
@@ -53,7 +47,7 @@ int main(int argc, char *argv[]){
     while(1){
         /* Try to receive any incoming UDP datagram. Address and port of 
           requesting client will be stored on serverStorage variable */
-        nBytes = recvfrom(udpSocket,buffer,BUFLEN,0,(struct sockaddr *)&serverStorage, &addr_size);
+        nBytes = recvfrom(udpSocket,buffer,BUFLEN,0,(struct sockaddr *) &serverStorage, &addr_size);
 
         /*Convert message received to uppercase*/
         for(i=0;i<nBytes-1;i++)
