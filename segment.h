@@ -21,12 +21,12 @@ typedef struct {
 	char checksum;
 } packet_ack;
 
-void segment_to_buffer(segment seg, char* buffer);
+void segment_to_raw(segment seg, char* raw);
 
-void to_segment(segment seg, char* buffer);
+void to_segment(segment seg, char* raw);
 
-void ack_to_buffer(packet_ack ack_seg, char* buffer);
+void ack_to_raw(packet_ack ack_seg, char* raw);
 
-void to_ack(packet_ack ack_seg, char* buffer);
+void to_ack(packet_ack ack_seg, char* raw);
 
 #endif SEGMENT_H
