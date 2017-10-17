@@ -57,9 +57,10 @@ int main(int argc, char *argv[]){
             seg->etx = 0x3;
             seg->checksum = 0x4;
             segment_to_raw(*seg, &raw);
-            for(int i=0; i<9; i++){
-                // msg_buff+(n*9+1) = raw[i];
-            }
+            msg_buff[n*9] = raw;
+            // for(int i=0; i<9; i++){
+            //     msg_buff+(n*9+1) = raw+i;
+            // }
             n++;
         }
     }
