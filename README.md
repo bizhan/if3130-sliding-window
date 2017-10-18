@@ -28,7 +28,11 @@
     - <port> : port yang digunakan pada receiver
 
 ### BAGIAN II - CARA KERJA SLIDING WINDOW
+Pada program kami, struktur BufferArray digunakan untuk merepresentasikan sender atau receiver buffer. Pada sisi client, setiap data yang dibaca kemudian dienkapsulasi menjadi sebuah segment dengan fungsi createSegment untuk kemudian dimasukkan ke sender buffer. Program akan terus membaca data hingga sender buffer penuh.
 
+Data kemudian dikirimkan menuju receiver buffer.
+
+Ketika receiver buffer telah penuh, window size mengecil dan program mulai memindahkan data dari receiver buffer ke filesystem dengan fungsi drainBuffer. Fungsi ini akan mengosongkan receiver buffer dan menuliskan keluaran pada filename yang telah dispesifikasikan. Selain dipanggil pada saat receiver buffer penuh, drainBuffer juga akan dipanggil ketika data yang diterima oleh receiver buffer merupakan sentinel yang menandakan akhir dari sebuah file yang dikirim.
 
 ### BAGIAN III - PERTANYAAN DAN JAWABAN
 #### Pertanyaan
