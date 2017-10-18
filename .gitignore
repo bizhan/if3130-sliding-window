@@ -1,9 +1,0 @@
-*
-!*.c
-!*.sh
-!makefile
-!*.txt
-!*.md
-!*.h
-!.gitignore
-!*.png
