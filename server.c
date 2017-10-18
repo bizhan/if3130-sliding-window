@@ -45,15 +45,16 @@ void initBufferArray(BufferArray* a) {
 
 void freeArray(BufferArray *a) {
   free(a->segments);
-  a->segments = NULL;
-  a->length = 0;
+  initBufferArray(a);
 }
 
 void drainBufferArray(BufferArray* a) {
     for (int i = 0; i < a->length; i++) {
         segment aSegment = *(a->segments + i * SEGMENTSIZE);
-        writeToFile("output.txt", aSegment.data);
+        printf(" %c",(char) aSegment.data);
+        writeToFile("output.txt", (char) aSegment.data);
     }
+    printf("\n");
     freeArray(a);
     BUFFERFULL = 0;
 }
@@ -62,12 +63,11 @@ void insertBufferArray(BufferArray *a, segment aSegment) {
     int curr = a->length * SEGMENTSIZE;
     int memoryNeeded = curr + SEGMENTSIZE;
     int remainingMemoryAfterInsertion = BUFFERSIZE - memoryNeeded;
-    
+
+    // printf("CURR %d MEMNEED %d REMAINING %d\n", curr, memoryNeeded, remainingMemoryAfterInsertion);
+
     if (remainingMemoryAfterInsertion < SEGMENTSIZE) {
-        printf("Buffer is already full at length %d \n", a->length);
         BUFFERFULL = 1;
-        free(a);
-        // a->length = 0;
     }
     else {
         BUFFERFULL = 0;
@@ -109,68 +109,77 @@ int main(int argc, char *argv[]){
     int LFR = -1;
     int LAF = LFR + RWS;
     int seqValid = 1;
+    // int* has_ack = (int*) malloc(sizeof(int)*max_segment);
     int has_ack[max_segment];
-    memset(has_ack,0,sizeof(has_ack));
+    for(int i=0; i<max_segment; i++) has_ack[i]=0;
+    // memset(has_ack,0,sizeof(has_ack));
 
     while(1){
         char* segment_buff = (char*) malloc(sizeof(char)*9);
         struct sockaddr_in client_addr;
         int client_size = sizeof(client_addr);
 
+        // receive from client
         len = recvfrom(udpSocket,segment_buff,9,0,(struct sockaddr*) &client_addr, &client_size);
-
         segment seg;
         to_segment(&seg,segment_buff);
-
-        printf("[%d] segment %d caught\n", (int) time(0), seg.seqNum);
-        printf("Data : %c\n", seg.data);
+        printf("[%d] segment %d caught | have a data %c\n", (int) time(0), seg.seqNum, seg.data);
         fflush(stdout);
 
+        // insert to buffer & accept segment
         insertBufferArray(&recv_buffer,seg);
-        // printf("  | Buffer segment length : %d\n", recv_buffer.length);
-
-        // sendto(udpSocket,recv_buffer,len,0,NULL,NULL);
-
         int next_seg;
         int pos = LFR+1;
+        printf("%d\n", seg.seqNum);
+        for(int i=0; i<max_segment; i++){
+            printf("%d", has_ack[i]);
+        }
+        printf("\n");
         has_ack[seg.seqNum] = 1;
+        int all_full = 1;
         while(pos <= LAF && pos < max_segment) {
             if (!has_ack[pos]) {
                 next_seg = pos;
                 LFR=pos-1;
                 LAF=(LFR+RWS < max_segment)?LFR+RWS:max_segment-1;
+                all_full = 0;
                 break;
             }
             pos++;
         }
-        printf("--------\n");
-        printf("LFR : %d \n", LFR);
-        printf("RWS : %d \n", RWS);
-        printf("LAF : %d \n", LAF);
-        printf("--------\n");
-        printf("Next segment number %d \n", next_seg);
-        printf("--------\n");
 
-        // int diffWinSize = BUFFERSIZE - (recv_buffer.length*SEGMENTSIZE);
+        // if next segment hit maximum allowed buffer
+        if(all_full){
+            drainBufferArray(&recv_buffer);
+            for(int i=0; i<max_segment; i++) has_ack[i]=0;
+            LFR = -1;
+            pos = 0;
+            LAF = (LFR+RWS < max_segment)?LFR+RWS:max_segment-1;
+            next_seg = LFR+1;
+        }
+
+        printf("---------\n");
+        printf(" LFR : %d \n", LFR);
+        printf(" RWS : %d \n", RWS);
+        printf(" LAF : %d \n", LAF);
+        printf(" MAX : %d\n", max_segment);
+        printf(" --------\n");
+        printf(" Next segment number %d \n", next_seg);
+        printf("---------\n\n");
+
         packet_ack send_ack;
         send_ack.ack = 0x6;
         send_ack.nextSeqNum = next_seg;
-        // if (diffWinSize >= RWS ) {
-        //     send_ack.windowSize = RWS;   
-        // } else
-        //     send_ack.windowSize = diffWinSize;
         send_ack.checksum = 0x0;
 
         char* raw = (char*) malloc(7*sizeof(char));
 
-        // printf("%d\n", send_ack.nextSeqNum);
         ack_to_raw(send_ack,raw);
         send_ack.checksum = checksum_str(raw,6);
         raw[6] = send_ack.checksum;
 
-        // printf("%d\n", raw[1]);
-
         sendto(udpSocket,raw,7,0,(struct sockaddr*) &client_addr, client_size);
+        printf("BERHAILSEND\n");
     }
 
     return 0;

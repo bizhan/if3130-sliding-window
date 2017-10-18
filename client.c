@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
         int c;
         if(!block){
             n=0;
-            printf("PREPARE %d SEGMENT TO BUFFER\n", BUFLEN/SEGMENTSIZE);
+            printf("[%d] prepare %d segment to buffer\n", time(0), BUFLEN/SEGMENTSIZE);
             while(n < max_segment && (c = fgetc(fp)) != EOF){
                 segment seg = create_segment(n,c);
                 char* raw = (char*) malloc(SEGMENTSIZE*sizeof(char));
@@ -87,22 +87,21 @@ int main(int argc, char *argv[]){
                 }
                 n++;
             }
-            n--;
+            max_segment = n;
+            printf("---------\n");
+            printf(" buffer has %d maximum segment\n", max_segment);
+            printf(" buffer data:\n");
+            for(int i=0; i<max_segment; i++) printf(" %c", buf[i*SEGMENTSIZE+6]);
+            printf("\n---------\n");
             block = 1;
         } else {
-            if(n--<0){
-                // finish segment
-                block = 0;
-                continue;
-            }
             // prepare buffer segment to send
-            segment_buff = (char*) malloc(sizeof(char)*9);
+            segment_buff = (char*) malloc(sizeof(char)*SEGMENTSIZE);
             for(int j=0; j<SEGMENTSIZE; j++){
                 segment_buff[j] = buf[pos*SEGMENTSIZE+j];
             }
             sendto(clientSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr *)&client_addr,sizeof(client_addr));
-
-            printf("[%d] segment %d send\n", (int) time(0), segment_buff[1]);
+            printf("[%d] segment %d with data %c was send\n", (int) time(0), segment_buff[1], segment_buff[6]);
 
             // preapare raw to receive ACK
             raw = (char*) malloc(ACKSIZE*sizeof(char));
@@ -114,15 +113,29 @@ int main(int argc, char *argv[]){
             pos = next_seg;
             LAR=next_seg-1;
             LFS=(LAR+SWS<max_segment)?LAR+SWS:max_segment-1;
-            if(LAR==LFS){
+            printf("---------\n");
+            printf(" RECEIVE ACK : %d\n", next_seg-1);
+            printf(" LAR : %d\n", LAR);
+            printf(" SWS : %d\n", SWS);
+            printf(" LFS : %d\n", LFS);
+            printf(" MAX : %d\n", max_segment);
+            printf("---------\n\n");
+
+            printf("POS %d MAX %d\n", pos, max_segment);
+            if(pos>=max_segment || pos==0){
+                // finish segment
+                printf("DONE\n");
                 block=0;
                 pos=0;
                 if(c==EOF){
+                    printf("FINISH\n");
                     exit(1);
                 }
+                continue;
             }
         }
     }
+    close(clientSocket);
 
     return 0;
 }
