@@ -86,6 +86,7 @@ int main(int argc, char *argv[]){
     char* segment_buff;
     char* raw;
     int n;
+    int next_seg;
     // srand(time(NULL));
     while(1){
         // int r = rand() % 1000;
@@ -131,18 +132,36 @@ int main(int argc, char *argv[]){
             printf("[%d] segment %d with data %c was send\n", (int) time(0), segment_buff[1], segment_buff[6]); fflush(stdout);
             free(segment_buff);
 
-            // preapare raw to receive ACK
-            raw = (char*) malloc(ACKSIZE*sizeof(char));
-            len = recvfrom(clientSocket,raw,ACKSIZE,MSG_DONTWAIT,NULL, NULL);
+
+            // timeout setting
+            fd_set select_fds;
+            struct timeval timeout;
+
+            FD_ZERO(&select_fds);
+            FD_SET(clientSocket, &select_fds);
+
+            timeout.tv_sec = 1;
+            timeout.tv_usec = 0;
 
             packet_ack ack;
-            to_ack(&ack, raw);
-            free(raw);
+            int reload = 0;
+            if ( select(32, &select_fds, NULL, NULL, &timeout) == 0 ){  
+                printf("Select has timed out...\n");
+            } else{
+                // preapare raw to receive ACK
+                raw = (char*) malloc(ACKSIZE*sizeof(char));
+                len = recvfrom(clientSocket,raw,ACKSIZE,0,NULL, NULL);
 
-            int next_seg = ack.nextSeqNum;
-            pos = next_seg;
-            LAR=next_seg-1;
-            LFS=(LAR+SWS<max_segment)?LAR+SWS:max_segment-1;
+                to_ack(&ack, raw);
+                free(raw);
+                reload = 1;
+            }
+            if(reload){
+                next_seg = ack.nextSeqNum;
+                pos = next_seg;
+                LAR=next_seg-1;
+                LFS=(LAR+SWS<max_segment)?LAR+SWS:max_segment-1;
+            }
             printf("---------\n"); fflush(stdout);
             printf(" RECEIVE ACK : %d\n", next_seg-1); fflush(stdout);
             printf(" LAR : %d\n", LAR); fflush(stdout);
