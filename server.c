@@ -50,18 +50,18 @@ void drainBufferArray(BufferArray* a, char* filename, int max_segment) {
         temp[i] = (char) aSegment.data;
     }
     // printf("\n");
-    // writeToFile(filename, temp, a->length);
+    writeToFile(filename, temp, a->length);
     initBufferArray(a,max_segment);
 }
 
 void insertBufferArray(BufferArray *a, segment aSegment, int buffersize) {
     int curr = a->length * SEGMENTSIZE;
-    int memoryNeeded = curr + SEGMENTSIZE;
-    int remainingMemoryAfterInsertion = buffersize - memoryNeeded;
+    int last_mem = curr + SEGMENTSIZE;
+    // int remainingMemoryAfterInsertion = buffersize - memoryNeeded;
 
     // printf("CURR %d MEMNEED %d REMAINING %d\n", curr, memoryNeeded, remainingMemoryAfterInsertion);
 
-    if (remainingMemoryAfterInsertion < SEGMENTSIZE) {
+    if (last_mem >= buffersize){
     } else {
         *(a->segments + curr) = aSegment;
         a->length = a->length + 1;
@@ -70,7 +70,7 @@ void insertBufferArray(BufferArray *a, segment aSegment, int buffersize) {
 
 void writeToFile(char* filename, char* message, int n) {
     for(int i=0; i<n; i++){
-        printf("WRITE : %c", message[i]);
+        printf("WRITE : %c\n", message[i]);
     }
     FILE *fp;
     fp=fopen(filename, "a+");
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
     int RWS = char_to_int(argv[2]);
     int BUFLEN = char_to_int(argv[3]);
     int PORT = char_to_int(argv[4]);
-    char buf[BUFLEN];
+    // char buf[BUFLEN];
 
     int udpSocket, len;
     // open connection
@@ -112,29 +112,34 @@ int main(int argc, char *argv[]){
     int LFR = -1;
     int LAF = LFR + RWS;
     int seqValid = 1;
-    // int* has_ack = (int*) malloc(sizeof(int)*max_segment);
     int has_ack[max_segment];
     for(int i=0; i<max_segment; i++) has_ack[i]=0;
-    // memset(has_ack,0,sizeof(has_ack));
 
     while(1){
-        char* segment_buff = (char*) malloc(sizeof(char)*SEGMENTSIZE);
+        char* segment_buff;
         struct sockaddr_in client_addr;
         int client_size = sizeof(client_addr);
 
         // receive from client
+        segment_buff = (char*) malloc(sizeof(char)*SEGMENTSIZE);
         len = recvfrom(udpSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr*) &client_addr, &client_size);
         segment seg;
         to_segment(&seg,segment_buff);
         free(segment_buff);
+
         printf("[%d] segment %d caught | have a data %c\n", (int) time(0), seg.seqNum, seg.data);
         fflush(stdout);
-
+        
+        if(seg.data == 0){
+            drainBufferArray(&recv_buffer,FILE_NAME, max_segment);
+            printf("FINISH ALL MSG\n");
+            break;
+        }
         // write on file
-        char* c_in = (char *) malloc(sizeof(char));
-        c_in[0] = seg.data;
-        writeToFile(FILE_NAME,c_in,1);
-        free(c_in);
+        // char* c_in = (char *) malloc(sizeof(char));
+        // c_in[0] = seg.data;
+        // writeToFile(FILE_NAME,c_in,1);
+        // free(c_in);
 
         // insert to buffer & accept segment
         insertBufferArray(&recv_buffer,seg,BUFLEN);
@@ -192,6 +197,7 @@ int main(int argc, char *argv[]){
         printf("BERHASIL SEND\n");
         free(raw);
     }
+    close(udpSocket);
 
     return 0;
 }

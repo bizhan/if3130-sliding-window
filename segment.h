@@ -33,4 +33,6 @@ char checksum_str(char* x, int len);
 
 segment create_segment(int n, int data);
 
+segment create_sentinel();
+
 #endif

@@ -59,3 +59,13 @@ segment create_segment(int n, int c){
 	seg.checksum = 0x0;
 	return seg;
 }
+segment create_sentinel(){
+	segment seg;
+	seg.soh = 0xFF;
+	seg.seqNum = -1;
+	seg.stx = 0xFF;
+	seg.data = 0;
+	seg.etx = 0xFF;
+	seg.checksum = 0xFF;
+	return seg;
+}
