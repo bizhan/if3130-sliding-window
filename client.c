@@ -39,10 +39,10 @@ int init_socket_address(int* clientSocket, struct sockaddr_in *address, char* ip
     inet_aton(ip , &address->sin_addr);
 
     // setting timeout
-    struct timeval tv;
-    tv.tv_sec = 0.5;
-    tv.tv_usec = 0;  // Not init'ing this can cause strange errors
-    setsockopt(*clientSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+    // struct timeval tv;
+    // tv.tv_sec = 0.5;
+    // tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+    // setsockopt(*clientSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
 
     printf("[%d] success on address %s port %d\n", (int) time(0), ip, port);
     fflush(stdout);
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]){
 
             // preapare raw to receive ACK
             raw = (char*) malloc(ACKSIZE*sizeof(char));
-            len = recvfrom(clientSocket,raw,ACKSIZE,0,NULL, NULL);
+            len = recvfrom(clientSocket,raw,ACKSIZE,MSG_DONTWAIT,NULL, NULL);
 
             packet_ack ack;
             to_ack(&ack, raw);
