@@ -57,9 +57,9 @@ Ilustrasi TCP Header
 j. Data merupakan data sebenarnya yang dikirim melalui koneksi TCP.
 
 ### BAGIAN III - PEMBAGIAN TUGAS
-- Faiz Ghifari Haznitrama 13515010   33%
+- Faiz Ghifari Haznitrama 13515010   32%
 Membuat struktur data segment dan beberapa API yang digunakan (membuat data menjadi segment, mengubah segment menjadi raw dan sebaliknya)
-- Yesa Surya 13515088 33%
+- Yesa Surya 13515088 32%
 Membuat struktur data receiver buffer dan beberapa API yang digunakan (initializeBuffer, insertSegmentToBuffer, drainBuffer)
-- Dery Rahman Ahaddienata 13515097 34%
+- Dery Rahman Ahaddienata 13515097 36%
 Implementasi sliding window untuk pengiriman segmen. Membuat socket UDP.
