@@ -10,6 +10,11 @@
 #define SEGMENTSIZE 9
 int BUFFERFULL = 0;
 
+typedef struct {
+  segment* segments;
+  int length;
+} BufferArray;
+
 void init_socket(int* udpSocket, int port){
     /*Create UDP socket*/
     *udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -33,26 +38,20 @@ void init_socket(int* udpSocket, int port){
     fflush(stdout);
 }
 
-
-typedef struct {
-  segment* recv_buffer;
-  int seg_length;
-} BufferArray;
-
 void initBufferArray(BufferArray* a) {
-    a->recv_buffer = malloc(BUFFERSIZE * sizeof(char));
-    a->seg_length = 0;
+    a->segments = malloc(BUFFERSIZE * sizeof(char));
+    a->length = 0;
 }
 
 void freeArray(BufferArray *a) {
-  free(a->recv_buffer);
-  a->recv_buffer = NULL;
-  a->seg_length = 0;
+  free(a->segments);
+  a->segments = NULL;
+  a->length = 0;
 }
 
 void drainBufferArray(BufferArray* a) {
-    for (int i = 0; i < a->seg_length; i++) {
-        segment aSegment = *(a->recv_buffer + i * SEGMENTSIZE);
+    for (int i = 0; i < a->length; i++) {
+        segment aSegment = *(a->segments + i * SEGMENTSIZE);
         writeToFile("output.txt", aSegment.data);
     }
     freeArray(a);
@@ -60,18 +59,20 @@ void drainBufferArray(BufferArray* a) {
 }
 
 void insertBufferArray(BufferArray *a, segment aSegment) {
-    int curr = a->seg_length * SEGMENTSIZE;
+    int curr = a->length * SEGMENTSIZE;
     int memoryNeeded = curr + SEGMENTSIZE;
     int remainingMemoryAfterInsertion = BUFFERSIZE - memoryNeeded;
     
     if (remainingMemoryAfterInsertion < SEGMENTSIZE) {
-        printf("Buffer is already full at length %d \n", a->seg_length);
+        printf("Buffer is already full at length %d \n", a->length);
         BUFFERFULL = 1;
+        free(a);
+        // a->length = 0;
     }
     else {
         BUFFERFULL = 0;
-        *(a->recv_buffer + curr) = aSegment;
-        a->seg_length = a->seg_length + 1;
+        *(a->segments + curr) = aSegment;
+        a->length = a->length + 1;
     }
 }
 
@@ -96,18 +97,13 @@ int main(int argc, char *argv[]){
     char buf[BUFLEN];
 
     int udpSocket, len;
-    // char buffer[BUFLEN];
-    // char* buffer = (char*) malloc(sizeof(char)*9);
-    // socklen_t addr_size, client_addr_size;
-    // int i;
-
     // open connection
     init_socket(&udpSocket, PORT);
 
     // initial buffer
-    BufferArray buffer;
-    initBufferArray(&buffer);
-    buffer.recv_buffer = malloc(BUFLEN * sizeof(char));
+    BufferArray recv_buffer;
+    initBufferArray(&recv_buffer);
+    recv_buffer.segments = malloc(BUFLEN * sizeof(char));
 
     int max_segment = BUFLEN / SEGMENTSIZE;
     int LFR = -1;
@@ -127,12 +123,13 @@ int main(int argc, char *argv[]){
         to_segment(&seg,segment_buff);
 
         printf("[%d] segment %d caught\n", (int) time(0), seg.seqNum);
+        printf("Data : %c\n", seg.data);
         fflush(stdout);
 
-        insertBufferArray(&buffer,seg);
-        // printf("  | Buffer segment length : %d\n", buffer.seg_length);
+        insertBufferArray(&recv_buffer,seg);
+        // printf("  | Buffer segment length : %d\n", recv_buffer.length);
 
-        // sendto(udpSocket,buffer,len,0,NULL,NULL);
+        // sendto(udpSocket,recv_buffer,len,0,NULL,NULL);
 
         int next_seg;
         int pos = LFR+1;
@@ -154,7 +151,7 @@ int main(int argc, char *argv[]){
         printf("Next segment number %d \n", next_seg);
         printf("--------\n");
 
-        // int diffWinSize = BUFFERSIZE - (buffer.length*SEGMENTSIZE);
+        // int diffWinSize = BUFFERSIZE - (recv_buffer.length*SEGMENTSIZE);
         packet_ack send_ack;
         send_ack.ack = 0x6;
         send_ack.nextSeqNum = next_seg;

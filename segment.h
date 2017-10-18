@@ -31,4 +31,6 @@ void to_ack(packet_ack* ack_seg, char* raw);
 
 char checksum_str(char* x, int len);
 
+segment create_segment(int n, int data);
+
 #endif

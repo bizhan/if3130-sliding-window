@@ -48,3 +48,14 @@ char checksum_str(char* x, int length) {
 	}
 	return (char) n;
 }
+
+segment create_segment(int n, int c){
+	segment seg;
+	seg.soh = 0x1;
+	seg.seqNum = n;
+	seg.stx = 0x2;
+	seg.data = (char)c;
+	seg.etx = 0x3;
+	seg.checksum = 0x0;
+	return seg;
+}
