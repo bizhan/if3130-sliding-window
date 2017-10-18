@@ -142,7 +142,7 @@ int main(int argc, char *argv[]){
         // } else{
         // receive from client
         segment_buff = (char*) malloc(sizeof(char)*SEGMENTSIZE);
-        len = recvfrom(udpSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr*) &client_addr, &client_size);
+        len = recvfrom(udpSocket,segment_buff,SEGMENTSIZE,MSG_DONTWAIT,(struct sockaddr*) &client_addr, &client_size);
         segment seg;
         to_segment(&seg,segment_buff);
         free(segment_buff);
