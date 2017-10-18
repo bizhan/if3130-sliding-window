@@ -38,6 +38,12 @@ int init_socket_address(int* clientSocket, struct sockaddr_in *address, char* ip
     address->sin_port = htons(port); 
     inet_aton(ip , &address->sin_addr);
 
+    // setting timeout
+    struct timeval tv;
+    tv.tv_sec = 0.5;
+    tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+    setsockopt(*clientSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+
     printf("[%d] success on address %s port %d\n", (int) time(0), ip, port);
     fflush(stdout);
     return 1;
