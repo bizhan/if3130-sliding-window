@@ -3,10 +3,10 @@
 all: server client
 
 server:
-	gcc server.c segment.c util.c -o recvfile -w
+	gcc src/server.c src/segment.c src/util.c -o recvfile -w
 
 client:
-	gcc client.c segment.c util.c -o sendfile -w
+	gcc src/client.c src/segment.c src/util.c -o sendfile -w
 
 testsend:
 	./sendfile msg.txt 5 256 127.0.0.1 8888

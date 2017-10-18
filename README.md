@@ -30,9 +30,9 @@
 ### BAGIAN II - CARA KERJA SLIDING WINDOW
 Pada program kami, struktur BufferArray digunakan untuk merepresentasikan sender atau receiver buffer. Pada sisi client, setiap data yang dibaca kemudian dienkapsulasi menjadi sebuah segment dengan fungsi createSegment untuk kemudian dimasukkan ke sender buffer. Program akan terus membaca data hingga sender buffer penuh.
 
-Data kemudian dikirimkan menuju receiver buffer.
+Data kemudian dikirimkan menuju receiver buffer. Setiap segment dari sender buffer akan dikirim sejumlah window sizenya pada sender (SWS), segment tersebut jika telah diterima oleh receiver, receiver akan mengirim ACK bahwa segment tersebut telah diterima. Tetapi sebelum itu, receiver melakukan pengecekan error menggunakan checksum untuk memastikan segment yang diterima benar dan tidak mengandung error, barulah setelah itu ACK dikirim menuju sender. Ketika sender menerima ACK, sender akan mengetahui segment mana yang belum diterima oleh receiver. LAR pada sender menunjukan segment yang dipastikan telah diterima oleh receiver sehingga ketika sender menerima sebuah ACK window sender akan bergeser ke nextSeqNum yang ditunjukan oleh ACK tersebut. Hal ini terus dilakukan hingga receiver buffer penuh.
 
-Ketika receiver buffer telah penuh, window size mengecil dan program mulai memindahkan data dari receiver buffer ke filesystem dengan fungsi drainBuffer. Fungsi ini akan mengosongkan receiver buffer dan menuliskan keluaran pada filename yang telah dispesifikasikan. Selain dipanggil pada saat receiver buffer penuh, drainBuffer juga akan dipanggil ketika data yang diterima oleh receiver buffer merupakan sentinel yang menandakan akhir dari sebuah file yang dikirim.
+Ketika receiver buffer telah penuh, window size mengecil dan program mulai memindahkan data dari receiver buffer ke filesystem dengan fungsi drainBuffer. Fungsi ini akan mengosongkan receiver buffer dan menuliskan keluaran pada filename yang telah dispesifikasikan. Selain dipanggil pada saat receiver buffer penuh, drainBuffer juga akan dipanggil ketika data yang diterima oleh receiver buffer merupakan sentinel yang menandakan akhir dari sebuah file yang dikirim. Pada sender, sender mengetahui receiver buffer telah penuh ketika menerima sebuah ACK yang mengandung Advertise Window Size sebesar 0. Dari sini, sender akan melakukan pengosongan pada sender buffer dan mengisi kembali sender buffer dengan segment-segment yang belum terkirim dan masih tersimpan di filesystem. Setelah sender buffer kembali penuh dan receiver buffer telah kosong, proses pengiriman file akan berlanjut kembali hingga seluruh file selesai dikirimkan yang ditandai dengan sebuah sentinel yang diterima oleh receiver buffer.
 
 ### BAGIAN III - PERTANYAAN DAN JAWABAN
 #### Pertanyaan
@@ -62,4 +62,4 @@ Membuat struktur data segment dan beberapa API yang digunakan (membuat data menj
 - Yesa Surya 13515088 33%
 Membuat struktur data receiver buffer dan beberapa API yang digunakan (initializeBuffer, insertSegmentToBuffer, drainBuffer)
 - Dery Rahman Ahaddienata 13515097 34%
-Membuat mekanisme sliding window untuk pengiriman segmen
+Implementasi sliding window untuk pengiriman segmen. Membuat socket UDP.
