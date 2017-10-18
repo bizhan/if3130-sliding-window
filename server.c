@@ -6,9 +6,7 @@
 #include "segment.h"
 #include "util.h"
 
-#define BUFFERSIZE 256
 #define SEGMENTSIZE 9
-int BUFFERFULL = 0;
 
 typedef struct {
   segment* segments;
@@ -38,41 +36,33 @@ void init_socket(int* udpSocket, int port){
     fflush(stdout);
 }
 
-void initBufferArray(BufferArray* a) {
-    a->segments = (segment*)malloc(BUFFERSIZE/SEGMENTSIZE * sizeof(segment));
+void initBufferArray(BufferArray* a, int max_segment) {
+    free(a->segments);
+    a->segments = (segment*) malloc(max_segment * sizeof(segment));
     a->length = 0;
 }
 
-void freeArray(BufferArray *a) {
-  free(a->segments);
-  initBufferArray(a);
-}
-
-void drainBufferArray(BufferArray* a, char* filename) {
+void drainBufferArray(BufferArray* a, char* filename, int max_segment) {
     char temp[a->length];
     for (int i = 0; i < a->length; i++) {
         segment aSegment = *(a->segments + i * SEGMENTSIZE);
-        printf(" %c",(char) aSegment.data);
+        // printf(" %c",(char) aSegment.data);
         temp[i] = (char) aSegment.data;
     }
-    printf("\n");
-    writeToFile(filename, temp, a->length);
-    freeArray(a);
-    BUFFERFULL = 0;
+    // printf("\n");
+    // writeToFile(filename, temp, a->length);
+    initBufferArray(a,max_segment);
 }
 
-void insertBufferArray(BufferArray *a, segment aSegment) {
+void insertBufferArray(BufferArray *a, segment aSegment, int buffersize) {
     int curr = a->length * SEGMENTSIZE;
     int memoryNeeded = curr + SEGMENTSIZE;
-    int remainingMemoryAfterInsertion = BUFFERSIZE - memoryNeeded;
+    int remainingMemoryAfterInsertion = buffersize - memoryNeeded;
 
     // printf("CURR %d MEMNEED %d REMAINING %d\n", curr, memoryNeeded, remainingMemoryAfterInsertion);
 
     if (remainingMemoryAfterInsertion < SEGMENTSIZE) {
-        BUFFERFULL = 1;
-    }
-    else {
-        BUFFERFULL = 0;
+    } else {
         *(a->segments + curr) = aSegment;
         a->length = a->length + 1;
     }
@@ -80,11 +70,17 @@ void insertBufferArray(BufferArray *a, segment aSegment) {
 
 void writeToFile(char* filename, char* message, int n) {
     for(int i=0; i<n; i++){
-        printf("%c\n", message[i]);
+        printf("WRITE : %c", message[i]);
     }
     FILE *fp;
     fp=fopen(filename, "a+");
     fwrite(message, sizeof(message[0]), n, fp);
+    fclose(fp);
+}
+
+void initFile(char* filename){
+    FILE *fp;
+    fp=fopen(filename, "w");
     fclose(fp);
 }
 
@@ -106,10 +102,13 @@ int main(int argc, char *argv[]){
     init_socket(&udpSocket, PORT);
 
     // initial buffer
-    BufferArray recv_buffer;
-    initBufferArray(&recv_buffer);
-
     int max_segment = BUFLEN / SEGMENTSIZE;
+    BufferArray recv_buffer;
+    initBufferArray(&recv_buffer,max_segment);
+
+    // initial file
+    initFile(FILE_NAME);
+
     int LFR = -1;
     int LAF = LFR + RWS;
     int seqValid = 1;
@@ -119,20 +118,26 @@ int main(int argc, char *argv[]){
     // memset(has_ack,0,sizeof(has_ack));
 
     while(1){
-        char* segment_buff = (char*) malloc(sizeof(char)*9);
+        char* segment_buff = (char*) malloc(sizeof(char)*SEGMENTSIZE);
         struct sockaddr_in client_addr;
         int client_size = sizeof(client_addr);
 
         // receive from client
-        len = recvfrom(udpSocket,segment_buff,9,0,(struct sockaddr*) &client_addr, &client_size);
+        len = recvfrom(udpSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr*) &client_addr, &client_size);
         segment seg;
         to_segment(&seg,segment_buff);
         free(segment_buff);
         printf("[%d] segment %d caught | have a data %c\n", (int) time(0), seg.seqNum, seg.data);
         fflush(stdout);
 
+        // write on file
+        char* c_in = (char *) malloc(sizeof(char));
+        c_in[0] = seg.data;
+        writeToFile(FILE_NAME,c_in,1);
+        free(c_in);
+
         // insert to buffer & accept segment
-        insertBufferArray(&recv_buffer,seg);
+        insertBufferArray(&recv_buffer,seg,BUFLEN);
         int next_seg;
         int pos = LFR+1;
         printf("%d\n", seg.seqNum);
@@ -155,7 +160,7 @@ int main(int argc, char *argv[]){
 
         // if next segment hit maximum allowed buffer
         if(all_full){
-            drainBufferArray(&recv_buffer,FILE_NAME);
+            drainBufferArray(&recv_buffer,FILE_NAME, max_segment);
             for(int i=0; i<max_segment; i++) has_ack[i]=0;
             LFR = -1;
             pos = 0;

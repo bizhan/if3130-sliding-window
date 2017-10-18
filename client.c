@@ -102,6 +102,7 @@ int main(int argc, char *argv[]){
             }
             sendto(clientSocket,segment_buff,SEGMENTSIZE,0,(struct sockaddr *)&client_addr,sizeof(client_addr));
             printf("[%d] segment %d with data %c was send\n", (int) time(0), segment_buff[1], segment_buff[6]);
+            free(segment_buff);
 
             // preapare raw to receive ACK
             raw = (char*) malloc(ACKSIZE*sizeof(char));
@@ -109,6 +110,8 @@ int main(int argc, char *argv[]){
 
             packet_ack ack;
             to_ack(&ack, raw);
+            free(raw);
+
             int next_seg = ack.nextSeqNum;
             pos = next_seg;
             LAR=next_seg-1;
