@@ -129,7 +129,7 @@ int main(int argc, char *argv[]){
                 pos=0;
                 if(c==EOF){
                     printf("FINISH\n");
-                    exit(1);
+                    break;
                 }
                 continue;
             }

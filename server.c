@@ -39,7 +39,7 @@ void init_socket(int* udpSocket, int port){
 }
 
 void initBufferArray(BufferArray* a) {
-    a->segments = malloc(BUFFERSIZE * sizeof(char));
+    a->segments = (segment*)malloc(BUFFERSIZE/SEGMENTSIZE * sizeof(segment));
     a->length = 0;
 }
 
@@ -48,13 +48,15 @@ void freeArray(BufferArray *a) {
   initBufferArray(a);
 }
 
-void drainBufferArray(BufferArray* a) {
+void drainBufferArray(BufferArray* a, char* filename) {
+    char temp[a->length];
     for (int i = 0; i < a->length; i++) {
         segment aSegment = *(a->segments + i * SEGMENTSIZE);
         printf(" %c",(char) aSegment.data);
-        writeToFile("output.txt", (char) aSegment.data);
+        temp[i] = (char) aSegment.data;
     }
     printf("\n");
+    writeToFile(filename, temp, a->length);
     freeArray(a);
     BUFFERFULL = 0;
 }
@@ -76,10 +78,13 @@ void insertBufferArray(BufferArray *a, segment aSegment) {
     }
 }
 
-void writeToFile(char* filename, char message) {
-    FILE* fp;
-    fp = fopen(filename, "a");
-    fprintf(fp, "%c", message);
+void writeToFile(char* filename, char* message, int n) {
+    for(int i=0; i<n; i++){
+        printf("%c\n", message[i]);
+    }
+    FILE *fp;
+    fp=fopen(filename, "a+");
+    fwrite(message, sizeof(message[0]), n, fp);
     fclose(fp);
 }
 
@@ -103,7 +108,6 @@ int main(int argc, char *argv[]){
     // initial buffer
     BufferArray recv_buffer;
     initBufferArray(&recv_buffer);
-    recv_buffer.segments = malloc(BUFLEN * sizeof(char));
 
     int max_segment = BUFLEN / SEGMENTSIZE;
     int LFR = -1;
@@ -123,6 +127,7 @@ int main(int argc, char *argv[]){
         len = recvfrom(udpSocket,segment_buff,9,0,(struct sockaddr*) &client_addr, &client_size);
         segment seg;
         to_segment(&seg,segment_buff);
+        free(segment_buff);
         printf("[%d] segment %d caught | have a data %c\n", (int) time(0), seg.seqNum, seg.data);
         fflush(stdout);
 
@@ -150,7 +155,7 @@ int main(int argc, char *argv[]){
 
         // if next segment hit maximum allowed buffer
         if(all_full){
-            drainBufferArray(&recv_buffer);
+            drainBufferArray(&recv_buffer,FILE_NAME);
             for(int i=0; i<max_segment; i++) has_ack[i]=0;
             LFR = -1;
             pos = 0;
@@ -179,7 +184,8 @@ int main(int argc, char *argv[]){
         raw[6] = send_ack.checksum;
 
         sendto(udpSocket,raw,7,0,(struct sockaddr*) &client_addr, client_size);
-        printf("BERHAILSEND\n");
+        printf("BERHASIL SEND\n");
+        free(raw);
     }
 
     return 0;
